@@ -16,12 +16,17 @@ spa.shell = (function () {
            chat_extend_time: 1000,
            chat_retract_time: 300,
            chat_extend_height: 450,
-           chat_retract_height: 15
+           chat_retract_height: 15,
+           chat_extend_title: 'Click to retract',
+           chat_retracted_title: 'Click to extend'
        },
-       stateMap = {$container: null},   //整个模块中共享的动态信息放在stateMap变量中
+       stateMap = {
+           $container: null,
+           is_chat_retracted: true
+       },   //整个模块中共享的动态信息放在stateMap变量中
        jqueryMap = {},  //缓存jquery到jqueryMap中
 
-       setJqueryMap, toggleChat, initModule;
+       setJqueryMap, toggleChat, onClickChat, initModule;
 
 
     //缓存jquery集合.jqueryMap缓存的用途是大大减少jquery对文档的遍历次数.提高性能.
@@ -37,7 +42,7 @@ spa.shell = (function () {
         var px_chat_ht = jqueryMap.$chat.height(),
             is_open = px_chat_ht === configMap.chat_extend_height,  //是否展开了
             is_closed = px_chat_ht === configMap.chat_retract_height,   //是否收拢了
-            is_siding = !is_open && !is_closed;
+            is_siding = !is_open && !is_closed;                     //判断当前状态
 
         if(is_siding) return false;
 
@@ -47,6 +52,8 @@ spa.shell = (function () {
                 {height: configMap.chat_extend_height},
                 configMap.chat_extend_time,
                 function () {
+                    jqueryMap.$chat.attr('title', configMap.chat_extend_title);
+                    stateMap.is_chat_retracted = false;
                     if(callback) callback(jqueryMap.$chat);
                 }
             );
@@ -57,12 +64,19 @@ spa.shell = (function () {
             {height: configMap.chat_retract_height},
             configMap.chat_retract_time,
             function () {
+                jqueryMap.$chat.attr('title', configMap.chat_retracted_title);
+                stateMap.is_chat_retracted = true;
                 if(callback) callback(jqueryMap.$chat);
             }
-        )
+        );
 
         return true;
 
+    };
+
+    onClickChat = function (event) {
+        toggleChat(stateMap.is_chat_retracted);
+        return;
     };
 
     //public methods
@@ -72,13 +86,10 @@ spa.shell = (function () {
 
         setJqueryMap();
 
-        setTimeout(function () {
-            toggleChat(true);
-        }, 3000);
-
-        setTimeout(function () {
-            toggleChat(false);
-        }, 8000)
+        stateMap.is_chat_retracted = true;
+        jqueryMap.$chat
+            .attr('title', configMap.chat_retracted_title)
+            .click(onClickChat);
     };
 
 
