@@ -11,7 +11,6 @@ spa.shell = (function () {
             + '<div class="spa-shell-main-content"></div>'
         + '</div>'
         + '<div class="spa-shell-foot"></div>'
-        + '<div class="spa-shell-chat"></div>'
         + '<div class="spa-shell-modal"></div>',
            chat_extend_time: 1000,
            chat_retract_time: 300,
@@ -19,22 +18,21 @@ spa.shell = (function () {
            chat_retract_height: 15,
            chat_extend_title: 'Click to retract',
            chat_retracted_title: 'Click to extend',
+           //锚点schema映射,包含了不同模块的映射
            anchor_schema_map: {
                chat: {
-                   open: true,
+                   opened: true,
                    closed: true
                }
            }
        },
        stateMap = {
-           $container: null,
-           anchor_map: {},
-           is_chat_retracted: true
+           anchor_map: {}
        },   //整个模块中共享的动态信息放在stateMap变量中
        jqueryMap = {},  //缓存jquery到jqueryMap中
 
-       setJqueryMap, toggleChat, onClickChat, initModule,
-       copyAnchorMap, changeAnchorPart, onHashChange;
+       setJqueryMap, /*toggleChat, */onClickChat, initModule,
+       copyAnchorMap, changeAnchorPart, onHashChange, setChatAnchor;
 
     //工具函数
     copyAnchorMap = function () {
@@ -48,7 +46,7 @@ spa.shell = (function () {
         var $container = stateMap.$container;
         jqueryMap = {
             $container: $container,
-            $chat: $container.find('.spa-shell-chat')
+            //$chat: $container.find('.spa-shell-chat')
         };
     };
 
@@ -91,13 +89,16 @@ spa.shell = (function () {
     };
 
 
+    //解析URI锚点,将需要改变的锚点和当前的锚点进行比较,当需要改变的锚点和现在的锚点不同,且anchor schema同意时方可改变
     //锚点变化的监听函数
     onHashChange = function(event) {
+        console.log(123);
         var anchor_map_previous = copyAnchorMap(),
             anchor_map_proposed,
             _s_chat_previous,
             _s_chat_proposed,
-            s_chat_proposed;
+            s_chat_proposed,
+            is_ok = true;
 
 
         try {
@@ -120,23 +121,43 @@ spa.shell = (function () {
             s_chat_proposed = anchor_map_proposed.chat;
 
             switch (s_chat_proposed) {
-                case 'open':
-                    toggleChat(true);
+                case 'opened':
+                    //toggleChat(true);
+                    is_ok = spa.chat.setSliderPosition('opened');
                     break;
                 case 'closed':
-                    toggleChat(false);
+                    //toggleChat(false);
+                    is_ok = spa.chat.setSliderPosition('closed');
                     break;
                 default :
-                    toggleChat(false);
+                    spa.chat.setSliderPosition('closed');
                     delete anchor_map_proposed.chat;
                     $.uriAnchor.setAnchor(anchor_map_proposed, null, true);
+                    //toggleChat(false);
+                    /*delete anchor_map_proposed.chat;
+                    $.uriAnchor.setAnchor(anchor_map_proposed, null, true);*/
             }
         }
         //end adjust chat component if changed
 
+        //当setSilderPosition返回false值时(意味着更改位置的请求被拒绝),作出恰当的反应,
+        //要么回退到之前的位置的锚值,或者如果之前的不存在,则使用默认的.
+        if(!is_ok) {
+            if(anchor_map_previous) {
+                $.uriAnchor.setAnchor(anchor_map_previous, null, true);
+                stateMap.anchor_map = anchor_map_previous;
+            } else {
+                delete anchor_map_proposed.chat;
+                $.uriAnchor.setAnchor(anchor_map_proposed, null, true);
+            }
+        }
         return false;
     };
 
+
+    setChatAnchor = function (position_type) {
+        return changeAnchorPart({chat: position_type});
+    };
 
 
     //打开或关闭chat
@@ -176,7 +197,7 @@ spa.shell = (function () {
 
     };
 
-    onClickChat = function (event) {
+    /*onClickChat = function (event) {
         if(toggleChat(stateMap.is_chat_retracted)) {
             $.uriAnchor.setAnchor({
                 chat: (stateMap.is_chat_retracted ? 'open' : 'closed')
@@ -188,7 +209,7 @@ spa.shell = (function () {
             }
         );
         return false;
-    };
+    };*/
 
     //public methods
     initModule = function ($container) {
@@ -197,19 +218,28 @@ spa.shell = (function () {
 
         setJqueryMap();
 
-        stateMap.is_chat_retracted = true;
+        /*stateMap.is_chat_retracted = true;
         jqueryMap.$chat
             .attr('title', configMap.chat_retracted_title)
-            .click(onClickChat);
+            .click(onClickChat);*/
 
-        //configure uriAnthor to use our schema   配置uriAnchor插件,用以检测模式(schema)
+        //configure uriAnthor to use our schema   配置uriAnchor插件,用以检测模式(schema???)这个地方的模式是什么意思
         $.uriAnchor.configModule({
             schema_map: configMap.anchor_schema_map
         });
 
+        //chat模块的配置
+        spa.chat.configModule({
+            set_chat_anchor: setChatAnchor,
+            //chat_model: spa.model.chat,
+            //people_model: spa.model.people
+        });
+        //chat模块的初始化
+        spa.chat.initModule(jqueryMap.$container);
+
         $(window)
-            .bind('hashChange', onHashChange)
-            .trigger('hashChange');
+            .bind('hashchange', onHashChange)
+            .trigger('hashchange');
     };
 
 
