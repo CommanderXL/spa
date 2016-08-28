@@ -92,7 +92,6 @@ spa.shell = (function () {
     //解析URI锚点,将需要改变的锚点和当前的锚点进行比较,当需要改变的锚点和现在的锚点不同,且anchor schema同意时方可改变
     //锚点变化的监听函数
     onHashChange = function(event) {
-        console.log(123);
         var anchor_map_previous = copyAnchorMap(),
             anchor_map_proposed,
             _s_chat_previous,
