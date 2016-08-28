@@ -3,7 +3,15 @@
  */
 
 spa.fake = (function () {
-    var getPeopleList;
+    var getPeopleList, fakeIdSerial, makeFakeId, mockSio;
+
+    //添加模拟的服务端ID序号计数器
+    fakeIdSerial = 5;
+
+    //创建生成模拟的服务端ID字符串的方法
+    makeFakeId = function () {
+        return 'id_' + String(fakeIdSerial++);
+    };
 
     getPeopleList = function () {
         return [
@@ -35,9 +43,35 @@ spa.fake = (function () {
                 }
             }
         ]
-    }
+    };
+
+    mockSio = (function () {
+        var on_sio, emit_sio, callback_map = {};
+
+        on_sio = function (msg_type, callback) {
+            callback_map[msg_type] = callback;
+        };
+
+        emit_sio = function (msg_type, data) {
+            if(msg_type === 'adduser' && callback_map.userupdate) {
+                setTimeout(function () {
+                    callback_map.userupdate([{
+                        id: makeFakeId(),
+                        name: data.name,
+                        css_map: data.css_map
+                    }]);
+                }, 3000);
+            }
+        }
+
+        return {
+            emit: emit_sio,
+            on: on_sio
+        }
+    })();
 
     return {
-        getPeopleList: getPeopleList
+        getPeopleList: getPeopleList,
+        mockSio: mockSio
     }
 })();

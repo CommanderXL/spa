@@ -2,9 +2,12 @@ spa.shell = (function () {
    var configMap = {
        main_html: String()
         + '<div class="spa-shell-head">'
-            + '<div class="spa-shell-head-logo"></div>'
+            + '<div class="spa-shell-head-logo">'
+                + '<h1>SPA</h1>'
+                + '<p>javascript end to end</p>'
+            +'</div>'
             + '<div class="spa-shell-head-acct"></div>'
-            + '<div class="spa-shell-head-search"></div>'
+            /*+ '<div class="spa-shell-head-search"></div>'*/
         + '</div>'
         + '<div class="spa-shell-main">'
             + '<div class="spa-shell-main-nav"></div>'
@@ -46,8 +49,35 @@ spa.shell = (function () {
         var $container = stateMap.$container;
         jqueryMap = {
             $container: $container,
+            $acct: $container.find('.spa-shell-head-acct'),
+            $nav: $container.find('.spa-shell-main-nav')
             //$chat: $container.find('.spa-shell-chat')
         };
+    };
+
+
+    //点击登录/登出按钮操作
+    onTapAcct = function (event) {
+        var acct_text, user_name, user = spa.model.people.get_user();
+        if(user.get_is_anon()) {
+            user_name = prompt('please sign-in');
+            spa.model.people.login(user_name);
+            jqueryMap.$acct.text('...processing...');
+        } else {
+            spa.model.people.logout();
+        }
+        return false;
+    };
+
+
+    //登录后
+    onLogin = function (event, login_user) {
+        jqueryMap.$acct.text(login_user.name);
+    };
+
+    //登出
+    onLogout = function (event, login_user) {
+        jqueryMap.$acct.text('please sign in');
     };
 
 
@@ -216,6 +246,15 @@ spa.shell = (function () {
         $container.html(configMap.main_html);
 
         setJqueryMap();
+
+        //让$container订阅 'spa-login' 和 'spa-logout' 事件
+        $.gevent.subscribe($container, 'spa-login', onLogin);
+        $.gevent.subscribe($container, 'spa-logout', onLogout);
+
+        //初始化用户区的文字.在用户区上,绑定触摸或者鼠标点击的事件处理程序
+        jqueryMap.$acct
+            .text('Please sign-in')
+            .bind('utap', onTapAcct);
 
         /*stateMap.is_chat_retracted = true;
         jqueryMap.$chat
