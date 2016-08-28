@@ -24,6 +24,7 @@ spa.chat = (function () {
             + '</div>',
             //可以进行配置的选项
             //未列出来的选项则无法进行配置
+            //下面列出来了配置的预设值
             settable_map: {
                 slider_open_time: true,
                 slider_close_time: true,

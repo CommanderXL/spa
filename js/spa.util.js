@@ -25,7 +25,7 @@ spa.util = (function () {
 
         for(key_name in input_map) {
             if(input_map.hasOwnProperty(key_name)) {
-                if(settable_map.hasOwnProperty(key_name)) { //可配置的选项里面如果列出了这个表,
+                if(settable_map.hasOwnProperty(key_name)) { //可配置的选项里面如果存在这个可配置的key,那么才能进行配置
                     config_map[key_name] = input_map[key_name];
                 }
             } else {
