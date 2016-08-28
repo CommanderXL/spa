@@ -134,9 +134,6 @@ spa.model = (function () {
                 name: name
             });
 
-
-            console.log(makeCid());
-
             //响应userupdate事件, 即后端接收到的用户信息触发一个事件
             sio.on('userupdate', completeLogin);
 

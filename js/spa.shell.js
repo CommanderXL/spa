@@ -15,12 +15,12 @@ spa.shell = (function () {
         + '</div>'
         + '<div class="spa-shell-foot"></div>'
         + '<div class="spa-shell-modal"></div>',
-           chat_extend_time: 1000,
+          /* chat_extend_time: 1000,
            chat_retract_time: 300,
            chat_extend_height: 450,
            chat_retract_height: 15,
            chat_extend_title: 'Click to retract',
-           chat_retracted_title: 'Click to extend',
+           chat_retracted_title: 'Click to extend',*/
            //锚点schema映射,包含了不同模块的映射
            anchor_schema_map: {
                chat: {
@@ -190,7 +190,7 @@ spa.shell = (function () {
 
 
     //打开或关闭chat
-    toggleChat = function (do_extend, callback) {
+    /*toggleChat = function (do_extend, callback) {
         var px_chat_ht = jqueryMap.$chat.height(),
             is_open = px_chat_ht === configMap.chat_extend_height,  //是否展开了
             is_closed = px_chat_ht === configMap.chat_retract_height,   //是否收拢了
@@ -224,7 +224,7 @@ spa.shell = (function () {
 
         return true;
 
-    };
+    };*/
 
     /*onClickChat = function (event) {
         if(toggleChat(stateMap.is_chat_retracted)) {
