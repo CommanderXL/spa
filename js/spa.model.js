@@ -13,12 +13,13 @@ spa.model = (function () {
             cid_serial: 0,  //id序号
             people_cid_map: {}, //保留people_cid_map键,用来保存person对象映射,键为客户端ID(cid)
             people_db: TAFFY(),  //保留TaffyDB集合,初始化为空
-            user: null
+            user: null,
+            is_connected: fasle //是否在聊天室
         },
         isFakeData = true,
 
         personProto, makeCid, clearPeopleDb, completeLogin,
-        makePerson, removePerson, people, initModule;
+        makePerson, removePerson, people, initModule, chat;
 
 
     //创建客户端id.如果person还未存到server,那么person是没有服务端id的
@@ -166,6 +167,49 @@ spa.model = (function () {
             login: login,
             logout: logout
         }
+    })();
+
+    chat = (function () {
+        var _publish_listchange,
+            _update_list, _leave_chat, join_chat;
+
+        //接收新的人员列表,刷新people对象
+        _update_list = function (arg_list) {
+            var i, person_map, make_person_map,
+                people_list = arg_list[0];
+
+            //清楚people列表
+            clearPeopleDb();
+
+            PERSON:
+            for(i = 0; i < people_list.length; i++) {
+                person_map = people_list[i];
+
+                if(!person_map.name) {continue PERSON};
+
+                if(stateMap.user && stateMap.user.id === person_map._id) {
+                    stateMap.user.css_map = person_map.css_map;
+                    continue PERSON;
+                }
+
+                make_person_map = {
+                    cid: person_map._id,
+                    css_map: person_map.css_map,
+                    id: person_map.id,
+                    name: person_map.name
+                };
+
+                makePerson(make_person_map);
+            }
+            stateMap.people_db.sort('name');
+        };
+
+        //携带的数据为更新后的人员列表,接收到来自后端的消息时会触发这段代码
+        _publish_listchange = function (arg_list) {
+            _update_list(arg_list);
+
+            $.gevent.publish('spa-listchange', [arg_list]);
+        };
     })();
 
 
