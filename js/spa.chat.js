@@ -261,6 +261,110 @@ spa.chat = (function () {
         return false;
     };
 
+    //onSetchatee事件会选择新的听者并取消选择旧的听者.它也会更改聊天滑块的标题,并通知用户听者已经更改了.
+    onSetchatee = function (event, arg_map) {
+        var
+            new_chatee = arg_map.new_chatee,
+            old_chatee = arg_map.old_chatee;
+
+        jqueryMap.$input.focus();
+        if(!new_chatee) {
+            if(old_chatee) {
+                writeAlert(old_chatee.name + ' has left the chat');
+            } else {
+                writeAlert('Your friend has left the chat');
+            }
+            jqueryMap.$title.text('chat');
+            return false;
+        }
+
+        jqueryMap.$list_box
+            .find('.spa-chat-list-name')
+            .removeClass('spa-x-select')
+            .end()
+            .find('[data-id=' + arg_map.new_chatee.id + ']')
+            .addClass('spa-x-select');
+
+        writeAlert('Now chatting with ' + arg_map.new_chatee.name);
+        jqueryMap.$title.text('Chat with ' + arg_map.new_chatee.name);
+        return true;
+    };
+
+    //为Model发布的spa-listchange事件创建onListchnage事件处理程序.
+    //该处理程序会获取当前人员集合,并渲染人员列表,如果有听者的话,则确保高亮听者.
+    onListchange = function (event) {
+        var
+            list_html = String(),
+            people_db = configMap.people_model.get_db(),
+            chatee = configMap.chat_model.get_chatee();
+
+        people_db().each(function (person, idx) {
+            var select_class = '';
+
+            if(person.get_is_anon() || person.get_is_user()) {
+                return true;
+            }
+
+            if(chatee && chatee.id === person.id) {
+                select_class = 'spa-x-select';
+            }
+
+            list_html += '<div class="spa-chat-list-name'
+                    + select_class + '"data-id="' + person.id + '">'
+                    + spa.util_b.encodeHtml(person.name) + '</div>';
+        });
+
+        if(!list_html) {
+            list_html = String()
+                + '<div class="spa-chat-list-note">'
+                + 'To chat alone is the fate of all great souls...<br><br>'
+                + 'No one is online'
+                + '</div>';
+            clearChat();
+        }
+        jqueryMap.$list_box.html(list_html);
+    };
+
+    onUpdatechat = function (event, msg_map) {
+        var is_user,
+            sender_id = msg_map.sender_id,
+            msg_text = msg_map.msg_text,
+            chatee = configMap.chat_model.get_chatee() || {},
+            sender = configMap.people_model.get_by_cid()(sender_id);
+
+        if(!sender) {
+            writeAlert(msg_text);
+            return false;
+        }
+
+        is_user = sender.get_is_user();
+
+        if(!(is_user || sender_id === chatee.id)) {
+            configMap.chat_model.set_chatee(sender_id);
+        }
+
+        writeChat(sender.name, msg_text, is_user);
+
+        if(is_user) {
+            jqueryMap.$input.val('');
+            jqueryMap.$input.focus();
+        }
+    };
+
+    //为Model发布的spa-login事件创建onLogin事件处理程序.该处理程序会打开聊天滑块
+    onLogin = function (event, login_user) {
+        configMap.set_chat_anchor('opened');
+    };
+
+    //为Model发布的spa-logout事件创建onLogout事件处理程序.该处理程序会清除聊天滑块的消息记录,重置聊天滑块的标题,并关闭聊天滑块
+    onLogout = function (event, logout_user) {
+        configMap.set_chat_anchor('closed');
+        jqueryMap.$title.text('Chat');
+        clearChat();
+    };
+
+    //End Event Handlers
+
 
     //对于功能模块的配置信息
     //内部的configMap始终是自身模块定义的configMap
@@ -275,14 +379,34 @@ spa.chat = (function () {
 
     //初始化
     initModule = function ($append_target) {
+        var $list_box;
+
         $append_target.append(configMap.main_html);
         stateMap.$append_target = $append_target;
         setJueryMap();
         setPxSizes();
 
         jqueryMap.$toggle.prop('title', configMap.slider_closed_title);
-        jqueryMap.$head.click(onClickToggle);
+        //jqueryMap.$head.click(onTagToggle);
         stateMap.position_type = 'closed';
+
+        //Have $list_box subscribe to jQuery global events
+        //订阅Model发布的所有事件
+        $list_box = jqueryMap.$list_box;
+        $.gevent.subscribe($list_box, 'spa-listchange', onListchange);
+        $.gevent.subscribe($list_box, 'spa-setchatee', onSetchatee);
+        $.gevent.subscribe($list_box, 'spa-updatechat', onUpdatechat);
+        $.gevent.subscribe($list_box, 'spa-login', onLogin);
+        $.gevent.subscribe($list_box, 'spa-logout', onLogout);
+
+
+        //绑定所有的用户输入事件.如果在订阅之前绑定,则会产生竞争条件(race condition)
+        jqueryMap.$head.bind('utap', onTagToggle);
+        jqueryMap.$list_box.bind('utap', onTapList);
+        jqueryMap.$send.bind('utap', onSubmitMsg);
+
+
+        jqueryMap.$form.bind('submit', onSubmitMsg);
 
         return true;
     };

@@ -4,6 +4,14 @@
     margin: 0;
     padding: 0;
     box-sizing: border-box;
+    user-select: none;
+    -webkit-user-drag: none;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+}
+
+input, textarea, .spa-x-user-select {
+    user-select: text;
 }
 
 h1, h2, h3, h4, h5, h6, p {
