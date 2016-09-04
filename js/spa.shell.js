@@ -269,12 +269,13 @@ spa.shell = (function () {
         //chat模块的配置
         spa.chat.configModule({
             set_chat_anchor: setChatAnchor,
-            //chat_model: spa.model.chat,
-            //people_model: spa.model.people
+            chat_model: spa.model.chat,     //初始化chat模块时,将spa.model的chat模块进行配置
+            people_model: spa.model.people  //初始化chat的people模块,将spa.model的people模块进行配置
         });
         //chat模块的初始化
         spa.chat.initModule(jqueryMap.$container);
 
+        //初始化过程中完成事件绑定
         $(window)
             .bind('hashchange', onHashChange)
             .trigger('hashchange');

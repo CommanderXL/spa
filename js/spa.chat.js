@@ -15,10 +15,20 @@ spa.chat = (function () {
                 + '</div>'
                 + '<div class="spa-chat-closer">x</div>'
                 + '<div class="spa-chat-sizer">'
-                    + '<div class="spa-chat-msgs"></div>'
-                    + '<div class="spa-chat-box">'
-                        + '<input type="text" />'
-                        + '<div>Send</div>'
+                    + '<div class="spa-chat-list">'
+                        + '<div class="spa-chat-list-box"></div>'
+                    + '</div>'
+                    + '<div class="spa-chat-msg">'
+                        + '<div class="spa-chat-msg-log"></div>'
+                        + '<div class="spa-chat-msg-in">'
+                            + '<form class="spa-chat-msg-form">'
+                                + '<input type="text"/>'
+                                + '<input type="submit" style="display:none;"/>'
+                                + '<div class="spa-chat-msg-send">'
+                                    + 'send'
+                                + '</div>'
+                            + '</form>'
+                        + '</div>'
                     + '</div>'
                 + '</div>'
             + '</div>',
@@ -41,8 +51,8 @@ spa.chat = (function () {
             slider_close_time: 250,
             slider_opened_em: 16,
             slider_closed_em: 2,
-            slider_opened_title: 'Click to close',
-            slider_closed_title: 'Click to open',
+            slider_opened_title: 'Tap to close',
+            slider_closed_title: 'Tap to open',
 
             chat_model: null,
             people_model: null,
@@ -57,17 +67,13 @@ spa.chat = (function () {
             slider_opened_px: 0
         },
         jqueryMap = {},
-        setJueryMap, getEmSize, setPxSizes, setSliderPosition,
+        setJueryMap, setPxSizes, setSliderPosition,
         onClickToggle, configModule, initModule,
-        removeSlider, handleResize;
+        removeSlider, handleResize,
+        scrollChat, writeChat, writeAlert, clearChat, onTagToggle,
+        onSubmitMsg, onTapList, onSetchatee, onUpdatechat, onListchange,
+        onLogin, onLogout;
 
-    //工具函数
-
-    getEmSize = function (elem) {
-        return Number(
-            getComputedStyle(elem, '').fontSize.match(/\d*\.?\d*/)[0]   //getComputedStyle是获取计算后的值,为px单位
-        );
-    };
 
 
     //缓存大量的jquery集合
@@ -81,17 +87,24 @@ spa.chat = (function () {
             $toggle: $slider.find('.spa-chat-head-toggle'),
             $title: $slider.find('.spa-chat-head-title'),
             $sizer: $slider.find('.spa-chat-sizer'),
-            $msgs: $slider.find('.spa-chat-msgs'),
-            $box: $slider.find('.spa-chat-box'),
-            $input: $slider.find('.spa-chat-input input[type=text]')
+            $list_box: $slider.find('.spa-chat-list-box'),
+            $msg_log: $slider.find('.spa-chat-msg-log'),
+            $msg_in: $slider.find('.spa-chat-msg-in'),
+            $input: $slider.find('.spa-chat-msg-in input[type=text]'),
+            $send: $slider.find('.spa-chat-msg-send'),
+            $form: $slider.find('.spa-chat-form'),
+            $window: $(window)
         }
     };
 
     //计算由该模块管理的元素的像素尺寸
     setPxSizes = function () {
-        var px_per_em, opened_height_em;
+        var px_per_em, opened_height_em, window_height_em;
 
-        px_per_em = getEmSize(jqueryMap.$slider.get(0));    //获取容器的fontSize大小,em单位的基准点
+        px_per_em = spa.util_b.getEmSize(jqueryMap.$slider.get(0));    //获取容器的fontSize大小,em单位的基准点
+        window_height_em = Math.floor(
+            (jqueryMap.$window.height() / px_per_em) + 0.5
+        );
 
         opened_height_em = configMap.slider_opened_em;
 
@@ -109,8 +122,18 @@ spa.chat = (function () {
         var
             height_px, animate_time, slider_title, toggle_text;
 
+        //初始化的时候未将people model赋值给configMap
+        if(position_type === 'opened' && configMap.people_model.get_user().get_is_anon()) {
+            return false;
+        }
+
         //return true if slider already in requested position
-        if(stateMap.position_type === position_type) return true;
+        if(stateMap.position_type === position_type) {
+            if(position_type === 'opened') {
+                jqueryMap.$input.focus();
+            }
+            return;
+        }
 
         switch (position_type) {
             case 'opened':
@@ -118,6 +141,8 @@ spa.chat = (function () {
                 animate_time = configMap.slider_open_time;
                 slider_title = configMap.slider_opened_title;
                 toggle_text = '=';
+                //当窗口打开时,输入框自动获取焦点
+                jqueryMap.$input.focus();
                 break;
             case 'hidden':
                 height_px = 0;
@@ -150,8 +175,55 @@ spa.chat = (function () {
     };
 
 
-    //更改URI并立即退出,让shell中的hashChange事件处理程序来捕获URI锚的变化
-    onClickToggle = function (event) {
+    //DOM方法
+    //Begin private DOM methods to manage chat message
+    //用于操作消息记录的所有DOM方法区块的方法
+
+
+    //scrollChat方法,消息记录文字以平滑滚动的方式显现
+    scrollChat = function () {
+        var $msg_log = jqueryMap.$msg_log;
+        $msg_log.animate({
+            scrollTop: $msg_log.prop('scrollHeight') - $msg_log.height()    //TODO 了解下scroll
+        }, 150);
+    };
+
+    //writeChat方法用于添加消息记录.如果发送者是用户自己,则使用不同的样式.请务必在输出HTML的时候进行编码
+    writeChat = function (person_name, text, is_user) {
+        var msg_class = is_user ? 'spa-chat-msg-log-me' : 'spa-chat-msg-log-msg';
+        jqueryMap.$msg_log.append(
+            '<div class=""' + msg_class + '">'
+            + spa.util_b.encodeHtml(person_name) + ': '
+            + spa.util_b.encodeHtml(text) + '</div>'
+        );
+
+        scrollChat();
+    };
+
+    //writeAlert方法,用于在消息记录中添加系统警告.请务必在输出HTML的时候进行编码
+    writeAlert = function (alert_text) {
+        jqueryMap.$msg_log.append(
+            '<div class="spa-chat-msg-log-alert">'
+            + spa.util_b.encodeHtml(alert_text)
+            + '</div>'
+        );
+        scrollChat();
+    };
+
+    //clearChat方法用于消除消息记录
+    clearChat = function () {
+        jqueryMap.$msg_log.empty();
+    };
+
+
+    //End private DOM methods to manage chat message
+    //用于操作消息记录的所有DOM方法区块的结束
+
+
+    //Begin Event Handlers
+
+    //更改URI并立即退出,让shell中的hashChange事件处理程序来捕获URI锚的变化,window时刻都在监听hashchange这个事件
+    onTapToggle = function (event) {
         var set_chat_anchor = configMap.set_chat_anchor;
         if(stateMap.position_type === 'opened') {
             set_chat_anchor('closed');
@@ -160,6 +232,33 @@ spa.chat = (function () {
             set_chat_anchor('opened');
             return false;
         }
+    };
+
+    //onSubmitMsg事件处理程序,当用户提交发送消息时,会产生这个事件.使用model.chat_send_msg方法来发送消息
+    onSubmitMsg = function (event) {
+        var msg_text = jqueryMap.$input.val();
+        if(msg_text.trim() === '') {return false;}  //判断如果输入框的内容为空.则返回
+        configMap.chat_model.send_msg(msg_text);
+        jqueryMap.$input.focus();
+        //通过class来控制样式
+        jqueryMap.$send.addClass('spa-x-select');
+        setTimeout(function () {
+            jqueryMap.$send.removeClass('spa-x-select');
+        }, 250);
+
+        return false;
+    };
+
+    //onTapList事件,当用户点击或者轻击(tap)用户名的时候,会产生这个事件.使用model.chat.set_chatee方法来设置听者
+    onTapList = function (event) {
+        var $tapped = $(event.target), chatee_id;
+        if(!$tapped.hasClass('spa-chat-list-name')) {return false;}
+
+        chatee_id = $tapped.attr('data-id');
+        if(!chatee_id) {return false;}
+
+        configMap.chat_model.set_chatee(chatee_id);
+        return false;
     };
 
 
