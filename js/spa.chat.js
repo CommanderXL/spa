@@ -251,7 +251,7 @@ spa.chat = (function () {
 
     //onTapList事件,当用户点击或者轻击(tap)用户名的时候,会产生这个事件.使用model.chat.set_chatee方法来设置听者
     onTapList = function (event) {
-        var $tapped = $(event.target), chatee_id;
+        var $tapped = $(event.elem_target), chatee_id;      //TODO event.elem_target对象是什么?
         if(!$tapped.hasClass('spa-chat-list-name')) {return false;}
 
         chatee_id = $tapped.attr('data-id');
@@ -298,6 +298,7 @@ spa.chat = (function () {
             people_db = configMap.people_model.get_db(),
             chatee = configMap.chat_model.get_chatee();
 
+        //遍历当前数据库,生成用户列表
         people_db().each(function (person, idx) {
             var select_class = '';
 
@@ -325,12 +326,14 @@ spa.chat = (function () {
         jqueryMap.$list_box.html(list_html);
     };
 
+    //onUpdatechat事件处理程序会更新消息记录的显示.如果发送者是用户自己,则清除输入框并使之重新获取焦点.它也会把听者设置为消息的发送者.
     onUpdatechat = function (event, msg_map) {
         var is_user,
             sender_id = msg_map.sender_id,
             msg_text = msg_map.msg_text,
             chatee = configMap.chat_model.get_chatee() || {},
-            sender = configMap.people_model.get_by_cid()(sender_id);
+            sender = configMap.people_model.get_by_cid(sender_id);
+
 
         if(!sender) {
             writeAlert(msg_text);

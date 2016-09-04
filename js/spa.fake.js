@@ -53,6 +53,7 @@ spa.fake = (function () {
         };
 
         emit_sio = function (msg_type, data) {
+            console.log(data);
             var person_map, i;
             //有新用户加入
             if(msg_type === 'adduser' && callback_map.userupdate) {
@@ -71,12 +72,12 @@ spa.fake = (function () {
             if(msg_type === 'updatechat' && callback_map.updatechat) {
                 setTimeout(function () {
                     var user = spa.model.people.get_user();
-                    callback_map.updatechat({
+                    callback_map.updatechat([{    //TODO 注意这里传入的数据类型, 传入的为一个数组
                         dest_id: user.id,
                         dest_name: user.name,
                         sender_id: data.dest_id,
                         msg_text: 'Thanks for the node, ' + user.name
-                    });
+                    }]);
                 }, 2000);
             }
 

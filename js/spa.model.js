@@ -48,6 +48,8 @@ spa.model = (function () {
         stateMap.user.css_map = user_map.css_map;
         stateMap.people_cid_map[user_map._id] = stateMap.user;
 
+        console.log(stateMap.user);
+
         //用户完成登入后就会自动加入聊天室
         chat.join();
 
@@ -138,6 +140,7 @@ spa.model = (function () {
                 name: name
             });
 
+
             //响应userupdate事件, 即后端接收到的用户信息触发一个事件
             sio.on('userupdate', completeLogin);
 
@@ -207,18 +210,21 @@ spa.model = (function () {
                 make_person_map = {
                     cid: person_map._id,
                     css_map: person_map.css_map,
-                    id: person_map.id,
+                    id: person_map._id,
                     name: person_map.name
                 };
                 person = makePerson(make_person_map);
+
 
                 if(chatee && chatee.id === make_person_map.id) {
                     is_chatee_online = true;
                     chatee = person;    //如果找到了听者,就更新为新的对象
                 }
 
-                makePerson(make_person_map);
+                //makePerson(make_person_map);
             }
+
+            //更新数据库内容
             stateMap.people_db.sort('name');
 
             //如果chatee不在线,将chatee置空
@@ -236,6 +242,7 @@ spa.model = (function () {
         //发布spa-updatechat事件,携带的数据是消息的详细消息的映射
         _publish_updatechat = function (arg_list) {
             var msg_map = arg_list[0];
+            console.log(msg_map);
 
             if(!chatee) {set_chatee(msg_map.sender_id)}
             else if(msg_map.sender_id !== stateMap.user.id && msg_map.sender_id !== chatee.id) {
@@ -309,6 +316,8 @@ spa.model = (function () {
                 msg_text: msg_txt
             };
 
+            //TODO 源码这个地方会触发2次发送数据
+            //发送消息, 发射updatechat事件
             _publish_updatechat([msg_map]);
             sio.emit('updatechat', msg_map);
             return true;

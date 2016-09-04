@@ -70,12 +70,12 @@ spa.shell = (function () {
     };
 
 
-    //登录后
+    //登录后,显示用户的名称
     onLogin = function (event, login_user) {
         jqueryMap.$acct.text(login_user.name);
     };
 
-    //登出
+    //登出,更改文案内容
     onLogout = function (event, login_user) {
         jqueryMap.$acct.text('please sign in');
     };
