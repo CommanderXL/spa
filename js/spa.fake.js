@@ -72,6 +72,7 @@ spa.fake = (function () {
             if(msg_type === 'updatechat' && callback_map.updatechat) {
                 setTimeout(function () {
                     var user = spa.model.people.get_user();
+                    //实际上这里调用的是model.chat._update_chat方法
                     callback_map.updatechat([{    //TODO 注意这里传入的数据类型, 传入的为一个数组
                         dest_id: user.id,
                         dest_name: user.name,

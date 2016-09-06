@@ -3,6 +3,7 @@
  * sub file 桩文件
  */
 
+//纯业务模块???
 spa.model = (function () {
     var
         configMap = {
@@ -27,7 +28,7 @@ spa.model = (function () {
         return 'c' + String(stateMap.cid_serial++);
     };
 
-    //TODO  ???
+    //TODO  每次出现用户状态发生变化的情况时，重新更新数据库内容
     clearPeopleDb = function () {
         var user = stateMap.user;
         stateMap.people_db = TAFFY();
@@ -61,9 +62,11 @@ spa.model = (function () {
 
     //原型对象
     personProto = {
+        //用户是否已登录
         get_is_user: function () {
             return this.cid === stateMap.user.cid;
         },
+        //是否是匿名用户
         get_is_anon: function () {
             return this.cid === stateMap.anon_user.cid;
         }
@@ -81,6 +84,7 @@ spa.model = (function () {
             throw 'client id and name required';
         }
 
+        //以personProto为原型对象新建一个对象,主要继承其get_is_user和get_is_anon方法
         person = Object.create(personProto);
         person.cid = cid;
         person.css_map = css_map;
@@ -181,6 +185,7 @@ spa.model = (function () {
         }
     })();
 
+    //定义chat模块
     chat = (function () {
         var _publish_listchange, _publish_updatechat,
             _update_list, _leave_chat,
@@ -249,6 +254,7 @@ spa.model = (function () {
                 set_chatee(msg_map.sender_id);
             }
 
+            //发布spa-updatechat事件,并在chat模块进行响应
             $.gevent.publish('spa-updatechat', [msg_map]);
         };
 
@@ -317,12 +323,13 @@ spa.model = (function () {
             };
 
             //TODO 源码这个地方会触发2次发送数据
-            //发送消息, 发射updatechat事件
+            //发送消息, 发射updatechat事件。其中的_publish_updatechat会触发spa-updatechat事件，并在chat模块中进行响应
             _publish_updatechat([msg_map]);
             sio.emit('updatechat', msg_map);
             return true;
         };
 
+        //通过选择ListBox，选择需要聊天的对象
         set_chatee = function (person_id) {
             var new_chatee;
             new_chatee = stateMap.people_cid_map[person_id];
@@ -335,7 +342,7 @@ spa.model = (function () {
                 new_chatee = null;
             }
 
-            //发布spa-setchatee事件,携带的数据是old_chatee和new_chatee
+            //发布spa-setchatee事件(重新选择听众的事件),携带的数据是old_chatee和new_chatee
             $.gevent.publish('spa-setchatee', {old_chatee: chatee, new_chatee: new_chatee});
             chatee = new_chatee;
             return true;

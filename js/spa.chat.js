@@ -54,7 +54,9 @@ spa.chat = (function () {
             slider_opened_title: 'Tap to close',
             slider_closed_title: 'Tap to open',
 
+            //spa.model模块配置的chat
             chat_model: null,
+            //spa.model模块配置的people
             people_model: null,
             set_chat_anchor: null
         },
@@ -76,7 +78,7 @@ spa.chat = (function () {
 
 
 
-    //缓存大量的jquery集合
+    //缓存Dom集合
     setJueryMap = function () {
         var $append_target = stateMap.$append_target,
             $slider = $append_target.find('.spa-chat');
@@ -201,6 +203,7 @@ spa.chat = (function () {
     };
 
     //writeAlert方法,用于在消息记录中添加系统警告.请务必在输出HTML的时候进行编码
+    //和普通聊天信息的样式有区别
     writeAlert = function (alert_text) {
         jqueryMap.$msg_log.append(
             '<div class="spa-chat-msg-log-alert">'
@@ -234,11 +237,13 @@ spa.chat = (function () {
         }
     };
 
+    //发送消息事件
     //onSubmitMsg事件处理程序,当用户提交发送消息时,会产生这个事件.使用model.chat_send_msg方法来发送消息
     onSubmitMsg = function (event) {
         var msg_text = jqueryMap.$input.val();
         if(msg_text.trim() === '') {return false;}  //判断如果输入框的内容为空.则返回
         configMap.chat_model.send_msg(msg_text);
+        //获取input焦点
         jqueryMap.$input.focus();
         //通过class来控制样式
         jqueryMap.$send.addClass('spa-x-select');
@@ -249,8 +254,11 @@ spa.chat = (function () {
         return false;
     };
 
+    //选择用户事件
     //onTapList事件,当用户点击或者轻击(tap)用户名的时候,会产生这个事件.使用model.chat.set_chatee方法来设置听者
+    //其中model.chat.set_chatee方法对chatee进行设置。在其内部发布'spa-setchatee'事件,并在chat模块订阅'spa-setchatee'事件
     onTapList = function (event) {
+        //事件代理
         var $tapped = $(event.elem_target), chatee_id;      //TODO event.elem_target对象是什么?
         if(!$tapped.hasClass('spa-chat-list-name')) {return false;}
 
@@ -264,10 +272,11 @@ spa.chat = (function () {
     //onSetchatee事件会选择新的听者并取消选择旧的听者.它也会更改聊天滑块的标题,并通知用户听者已经更改了.
     onSetchatee = function (event, arg_map) {
         var
-            new_chatee = arg_map.new_chatee,
-            old_chatee = arg_map.old_chatee;
+            new_chatee = arg_map.new_chatee,    //新的听众
+            old_chatee = arg_map.old_chatee;    //旧的听众
 
-        jqueryMap.$input.focus();
+        jqueryMap.$input.focus();               //获取焦点
+        //当new_chatee不存在时,即有用户离开时
         if(!new_chatee) {
             if(old_chatee) {
                 writeAlert(old_chatee.name + ' has left the chat');
@@ -278,6 +287,7 @@ spa.chat = (function () {
             return false;
         }
 
+        //控制被选中人名的样式
         jqueryMap.$list_box
             .find('.spa-chat-list-name')
             .removeClass('spa-x-select')
